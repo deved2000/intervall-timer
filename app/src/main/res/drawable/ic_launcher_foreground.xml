@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stoppuhr-Symbol, 108dp Adaptive-Icon-Fläche (Inhalt in der sicheren 66dp-Zone) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Krone -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M48,28h12v5h-12z" />
+    <!-- Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5"
+        android:pathData="M54,37m-20,20a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+    <!-- Zeiger -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M54,57L54,45M54,57L62,62" />
+</vector>

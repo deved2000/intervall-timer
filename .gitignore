@@ -1,0 +1,17 @@
+# Gradle / Android Studio
+.gradle/
+build/
+/app/build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signier-Schlüssel – NIEMALS committen!
+*.jks
+*.keystore
+*.b64
+keystore.properties

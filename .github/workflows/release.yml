@@ -1,0 +1,89 @@
+name: Build & Release APK
+
+on:
+  # Release: wenn du einen Tag wie v1.0.0 pushst
+  push:
+    tags:
+      - "v*"
+  # Manuell über den Tab "Actions" → "Run workflow"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Java 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prüfen, ob alle Secrets gesetzt sind
+        env:
+          KS: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SP: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KA: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KP: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$KS" ] && missing="$missing SIGNING_KEYSTORE_BASE64"
+          [ -z "$SP" ] && missing="$missing SIGNING_STORE_PASSWORD"
+          [ -z "$KA" ] && missing="$missing SIGNING_KEY_ALIAS"
+          [ -z "$KP" ] && missing="$missing SIGNING_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Fehlende Secrets:$missing (siehe README, Schritt 4)"
+            exit 1
+          fi
+
+      - name: Keystore aus Secret wiederherstellen
+        env:
+          KS: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: echo "$KS" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      - name: Versionsnummer bestimmen
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_NAME=0.0.${GITHUB_RUN_NUMBER}-dev" >> "$GITHUB_ENV"
+          fi
+          echo "VERSION_CODE=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Signierte Release-APK bauen
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleRelease
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/IntervallTimer-${VERSION_NAME}.apk"
+
+      - name: Keystore aufräumen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: APK als Build-Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: IntervallTimer-${{ env.VERSION_NAME }}
+          path: dist/*.apk
+
+      - name: GitHub Release erstellen
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
